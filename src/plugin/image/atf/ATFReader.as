@@ -12,126 +12,90 @@ package plugin.image.atf
 	 */
 	public class ATFReader implements IDataReader
 	{
-		
-		public static const TYPE_2D:ATFTextureType = ATFTextureType.TYPE_2D;
-		public static const TYPE_CUBE:ATFTextureType = ATFTextureType.TYPE_CUBE;
-		
-		private var _magic:String;
-		private var _type:ATFTextureType;
-		private var _format:String;
+		private var _data:ByteArray;
+		private var _signature:String;
+		private var _reserved:uint;
+		private var _version:uint;
+		private var _length:uint;
+		private var _cubemap:uint;
+		private var _format:uint;
 		private var _width:int;
 		private var _height:int;
-		private var _numTextures:int;
-		private var _data:ByteArray;
-		private var _totalBytes:int;
+		private var _count:uint;
 		
 		public function ATFReader( data:ByteArray ) 
 		{
-			data.endian = Endian.LITTLE_ENDIAN;
+			_data = new ByteArray();
+			_data.endian = Endian.LITTLE_ENDIAN;
+			
+			data.position = 0;
+			
+			_signature = data.readMultiByte( 3, "ascii" );
+			_reserved = data.readUnsignedInt();
+			_version = data.readUnsignedByte();
+			_length = data.readUnsignedInt();
+			var tdata : uint = data.readUnsignedByte();
+			
+			//0 = normal texture
+			//1 = cube map texture
+			_cubemap = tdata >> 7; 	// UB[1]
+			
+			//0 = RGB888
+			//1 = RGBA88888
+			//2 = Compressed
+			//3 = RAW Compressed
+			//4 = Compressed With Alpha
+			//5 = RAW Compressed With Alpha
+			_format = tdata & 0x7f;	// UB[7]
+			var log2Width:uint = data.readUnsignedByte();
+			var log2Height:uint = data.readUnsignedByte();
+			_width = 1 << log2Width;
+			_height = 1 << log2Height;
+			_count = data.readUnsignedByte();
+			
+			trace( "signature : " + _signature );
+			trace( "reserved : " + _reserved );
+			trace( "length : " + _length );
+			trace( "cubemap : " + _cubemap );
+			trace( "format : " + _format );
+			trace( "width : " + _width );
+			trace( "height : " + _height );
+			trace( "count : " + _count );
+			
 			_data = data;
-			_data.position = 0;
-			parse();
 		}
 		
-		private function parse():void
+		public function get data():ByteArray 
 		{
-			parseHeader();
-			parseType();
-			parseLength();
-			parseDimensions();
-			parseNumTextures();
+			return _data;
 		}
 		
-		private function parseHeader():void
+		public function get signature():String 
 		{
-			if( _data.length < 3 )
-			{
-				throw new Error( "ATF parsing error, invalid length." );
-			}
-			
-			_magic = _data.readUTFBytes( 3 );
-			if( _magic != "ATF" )
-			{
-				throw new Error( "ATF parsing error, unknown format " + _magic );
-			}
+			return _signature;
 		}
 		
-		private function parseLength():void
+		public function get reserved():uint 
 		{
-			_totalBytes = (_data.readUnsignedByte() << 16) + (_data.readUnsignedByte() << 8) + _data.readUnsignedByte();
+			return _reserved;
 		}
 		
-		/* TODO
-		BGR_PACKED
-		BGRA
-		BGRA_PACKED
-		COMPRESSED
-		COMPRESSED_ALPHA
-		*/
-		private function parseType():void
+		public function get version():uint 
 		{
-			var tdata:uint = _data.readUnsignedByte();
-			var type:int = tdata >> 7; // UB[1]
-			var format:int = tdata & 0x7f; // UB[7]
-			
-			switch( format )
-			{
-				case 0:
-				case 1:
-						_format = "rgba";
-					break;
-				case 2:
-				case 3:
-						_format = "compressed";
-					break;
-				case 4:
-				case 5:
-						_format = "compressedAlpha";
-					break;
-					
-					// for old ATF.... TODO.... Look at this stuff
-				case 16:
-						_format = "compressed";
-					break
-				default:
-					throw new Error( "Invalid ATF format " + format );
-			}
-			
-			switch( type )
-			{
-				case 0:
-						_type = ATFTextureType.TYPE_2D;
-					break;
-				case 1:
-						_type = ATFTextureType.TYPE_CUBE;
-					break;
-				default:
-					throw new Error("Invalid ATF type");
-			}
+			return _version;
 		}
 		
-		private function parseDimensions():void
+		public function get length():uint 
 		{
-			_width = Math.pow( 2, _data.readUnsignedByte() );
-            _height = Math.pow( 2, _data.readUnsignedByte() );
+			return _length;
 		}
 		
-		private function parseNumTextures():void
+		public function get cubemap():uint 
 		{
-			_numTextures = _data.readUnsignedByte();
+			return _cubemap;
 		}
 		
-		public function get magic():String 
-		{
-			return _magic;
-		}
-		
-		public function get type():ATFTextureType 
-		{
-			return _type;
-		}
-		
-		public function get format():String 
+		public function get format():uint 
 		{
 			return _format;
 		}
@@ -146,19 +110,11 @@ package plugin.image.atf
 			return _height;
 		}
 		
-		public function get numTextures():int 
+		public function get count():uint 
 		{
-			return _numTextures;
+			return _count;
 		}
 		
-		public function get data():ByteArray 
-		{
-			return _data;
-		}
 		
-		public function get totalBytes():int 
-		{
-			return _totalBytes;
-		}
 	}
 }
