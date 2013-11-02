@@ -1,7 +1,7 @@
 package plugin.image.utils 
 {
 	import flash.utils.ByteArray;
-	import plugin.image.IDataReader;
+	import plugin.image.utils.IDataReader;
 	/**
 	 * ...
 	 * @author Gary Paluk - http://www.plugin.io
