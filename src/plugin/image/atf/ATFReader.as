@@ -53,15 +53,6 @@ package plugin.image.atf
 			_height = 1 << log2Height;
 			_count = data.readUnsignedByte();
 			
-			trace( "signature : " + _signature );
-			trace( "reserved : " + _reserved );
-			trace( "length : " + _length );
-			trace( "cubemap : " + _cubemap );
-			trace( "format : " + _format );
-			trace( "width : " + _width );
-			trace( "height : " + _height );
-			trace( "count : " + _count );
-			
 			_data = data;
 		}
 		
